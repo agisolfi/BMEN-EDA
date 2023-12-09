@@ -1,0 +1,420 @@
+---
+title: "Project 4"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+date: "2023-11-30"
+---
+
+```{r}
+knitr::opts_chunk$set(fig.height = 4,warning = FALSE)
+```
+
+```{r}
+library(ggplot2)
+library(caret)
+library(tidyverse)
+library(psych)
+library(Amelia)
+```
+
+## Part 0: Importing Data
+```{r}
+## Numeric Dataset
+data<-read.csv("insurance.csv",stringsAsFactors = TRUE,header=TRUE)
+data$children <- factor(data$children)
+##Factors Dataset
+data.cat <-read.csv("insurance.csv",stringsAsFactors = FALSE,header=TRUE)
+data.cat$children <- factor(data.cat$children)
+
+```
+### Enter descipriton of all column names found here <https://www.kaggle.com/datasets/mirichoi0218/insurance>
+
+## Part 1: Data Description
+### Where did data come from?
+### Give Contxt, what we are looking at?, what is importnant
+
+## 1.2 Explore Data Set and Variables
+```{r}
+str(data)
+```
+
+```{r}
+summary(data)
+```
+
+```{r}
+describe(data)
+```
+## 1.3 Data Manipulation
+
+### Based off the distribution of charges data, we will split the data into three different groups. THe first group will be the "low charges group" which contains all data points below a $5,000 charge. This value was chosen becasue it is just above the first quarter of the data. The second group would be intermediate charges containing values between $5,001 and $15,000. The final grouping will be values above $15,001 and will be deemed the "high charges group."
+
+```{r}
+breaks <- c(-Inf, 5000, 15000, Inf)
+
+# Create a new column 'charge_group' based on the breaks
+#data$charge_group <- cut(data$charge, breaks = breaks, labels = c("< $5,000", "$5,001 - $15,000", "> $15,000"), include.lowest = TRUE)
+data$charge_group <- cut(data$charge, breaks = breaks, labels = c("Low", "Intermediate", "High"), include.lowest = TRUE)
+data<- data.frame(data, stringsAsFactors = TRUE)
+# View the resulting data frame
+head(data)
+```
+
+
+## 1.4 Missing Data
+```{r}
+sum(is.na(data))
+```
+```{r}
+missmap(data)
+```
+
+### No missing values
+## Part 2: Univariate Analysis
+
+## 2.1: Basic Structures
+```{r}
+summary(data)
+```
+```{r}
+## AGE
+mean(data$age)
+max(data$age)
+min(data$age)
+```
+
+```{r}
+data.cat %>% count(data.cat$sex)
+```
+
+```{r}
+## BMI
+max(data$bmi)
+min(data$bmi)
+mean(data$bmi)
+```
+
+```{r}
+## Children
+data.cat %>% count(data.cat$children)
+
+```
+
+```{r}
+## Smoker
+data.cat %>% count(data.cat$smoker)
+```
+
+```{r}
+## Region
+data.cat %>% count(data.cat$region)
+```
+
+```{r}
+## Charges
+mean(data$charges)
+max(data$charges)
+min(data$charges)
+```
+
+
+## 2.2 Identify Outliers
+```{r}
+summary(data)
+```
+### The following lines produce a boxplot for all numeric features. All outliers are labelled in red
+
+```{r}
+p<- ggplot(data,aes(age))
+p+ geom_boxplot(outlier.colour = "red")
+p+ geom_histogram()
+
+```
+
+```{r}
+ p<- ggplot(data,aes(bmi))
+p+ geom_boxplot(outlier.colour = "red")
+p+ geom_histogram()
+```
+
+```{r}
+ p<- ggplot(data,aes(charges))
+p+ geom_boxplot(outlier.colour = "red")
+p+ geom_histogram()
+```
+
+## 2.3: Frequency Distributions
+```{r}
+pairs(data) 
+```
+
+```{r}
+#AGE
+
+var(data$age)
+sd(data$age)
+p<- ggplot(data,aes(age))
+p+ geom_histogram()
+p+ geom_density()
+
+
+
+
+```
+
+
+```{r}
+#BMI
+var(data$bmi)
+sd(data$bmi)
+p<- ggplot(data,aes(bmi))
+p+ geom_histogram()
+p+ geom_density()
+
+```
+```{r}
+#children
+p<- ggplot(data,aes(children))
+p+ geom_density()
+```
+```{r}
+#CHARGES
+var(data$charges)
+sd(data$charges)
+p<- ggplot(data,aes(charges))
+p+ geom_histogram()
+p+ geom_density()
+summary(data$charges)
+```
+
+
+```{r}
+data %>% count(data$charge_group)
+```
+
+##Normalization of Data:
+```{r}
+## using min-max normalization
+library(dplyr)
+
+min_max_normalize <- function(x) {
+  (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
+}
+
+normalized_data <- data %>%
+  mutate(across(where(is.numeric), min_max_normalize))
+
+## refactor children column
+normalized_data$children<- factor(normalized_data$children)
+
+data_encoded <- model.matrix(~ . - 1, data = normalized_data)
+## Prove it works
+str(normalized_data)
+
+
+```
+
+
+
+## Part 3: Multivariate Analysis
+### The following code is a multivariable analysis of the relationship between age vs. charge and bmi vs. charge. Linear regressions models and the cor() function were ultilized on these paramters to investigate the repsective relationship. Categorical Values like sex, children, smoker, region cannot utillize linear regression and the cor() function and were therefore not investigated this way.
+
+
+### The graph of age vs charges and the linear regression model of the relationship is presented below. The R^2 value of the linear model is around 8% which is not ideal. Although this R^2 value would suggest there is little to no relationship between these values, but the graph of the data points suggests otherwise. 
+```{r}
+p<- ggplot(data,aes(age,charges))
+p+ geom_point()
+```
+```{r}
+age.lm<- lm(age~charges, data=data)
+summary(age.lm)
+cor(x=data$age,y=data$charges)
+```
+## do it with the three categories
+```{r}
+p<- ggplot(data,aes(age,charge_group))
+p+ geom_point()
+```
+
+```{r}
+age.lm<- lm(age~charge_group, data=data)
+summary(age.lm)
+cor(x=data$age,y=data$charges)
+```
+### Bmi vs. charges
+
+
+```{r}
+p<- ggplot(data,aes(bmi,charges))
+p+ geom_point()
+```
+```{r}
+bmi.lm<- lm(bmi~charges, data=data)
+summary(bmi.lm)
+cor(x=data$bmi,y=data$charges)
+```
+
+### Bmi vs. charge_groups
+
+```{r}
+p<- ggplot(data,aes(bmi,charge_group))
+p+ geom_point()
+```
+```{r}
+bmi.lm<- lm(bmi~charge_group, data=data)
+summary(bmi.lm)
+cor(x=data$bmi,y=data$charges)
+```
+
+
+```{r}
+data %>% count(data$children)
+p<- ggplot(data,aes(children,charges))
+p+ geom_point()
+```
+
+
+```{r}
+p<- ggplot(data,aes(region,charges))
+p+ geom_point()
+```
+
+
+## Part 4: Predictive Modeling
+### 4.1: Split the data - mention normality since we are using a KNN for one of our models
+```{r}
+# Set Seed
+set.seed(100)
+#Seperate data
+spt<-sample(1:nrow(data),size=nrow(data)*0.7,replace=FALSE)
+#set Train data
+train.data<-normalized_data[spt,]
+#set test data
+test.data<-normalized_data[-spt,]
+
+```
+### 4.2: Build your model
+
+#### Model 1 - Multiple Linear Regression
+### A multiple linear regression of all parameters was performed to potentially describe the relationship between a patients medical bill and the parameters of the data set. Since the R^2 value was 75%, there seems to be a decent relationship betweens these paramters and price of a medical bill. Although this value is decent, it would be difficult to use for predictive purposes as it relates the parameters to a numeric value of medical bills and not the three categories we created earlier for predictive purposes. Linear regression based models are incapable of predicting categorical data so in order to predict data into one of these three categories, we must explore other model options.
+```{r}
+## Multiple linear regression of all parameters
+mreg1<- lm(data$charges~data$age+data$bmi+data$sex+data$children+data$region+data$smoker, data = data)
+summary(mreg1)
+
+```
+
+### K-means of all data - determine starting centers
+```{r}
+## how many centers?
+sqrt(nrow(train.data))
+```
+
+```{r}
+library(class)
+#set Train data
+train.data_class<-train.data$charge_group
+#set test data
+test.data_class<-test.data$charge_group
+
+train.data <- as.data.frame(lapply(train.data, as.numeric))
+test.data <- as.data.frame(lapply(test.data, as.numeric))
+
+suppressWarnings(knn.31<-knn(train=train.data,test=test.data,cl=train.data_class,k=31))
+```
+
+
+#### Model 2 - Decision Tree
+```{r}
+library(rpart)
+library(rpart.plot)
+# Remove charges column since it determinates the outcome
+train.data_tree<- train.data
+train.data_tree$charges<-NULL
+# using all the predictors and setting cp = 0
+tree <- rpart(charge_group ~ ., data = train.data_tree, method = "class", cp = 0.00)
+rpart.plot(tree)
+```
+## Find optimal CP
+```{r}
+plotcp(tree, lty = 3, col = 2, upper = "splits" )
+```
+
+### It seems that 0.056 is a valid cp value. Let's apply it here for a more condensed decision tree.
+```{r}
+tree <- rpart(charge_group ~ ., data = train.data_tree, method = "class", cp = 0.056)
+rpart.plot(tree)
+```
+
+## 4.3 Model Evaluation
+
+
+### Multiple Linear Regression Evaluation
+```{r}
+summary(mreg1)
+
+plot(mreg1$fitted.values, sqrt(abs(mreg1$residuals)),
+     main = "Residuals vs. Fitted Values",
+     xlab = "Fitted Values",
+     ylab = "SQRT of Residuals")
+
+# Residuals vs. Each Predictor Variable
+par(mfrow = c(2, 2))  # Create a 2x2 grid for multiple plots
+plot(mreg1, which = 1:4)
+```
+
+### Decision Tree Evaluation
+#### Below is a confusion matrix of the decision tree created earlier.
+```{r}
+tree.predict <- predict(tree, test.data, type = "class")
+## confusion matrix
+conf.matrix <- table(test.data$charge_group, tree.predict)
+rownames(conf.matrix) <- paste("Actual", rownames(conf.matrix), sep = ":")
+colnames(conf.matrix) <- paste("Predicted", colnames(conf.matrix), sep = ":")
+print(conf.matrix)
+```
+#### Below is the calculated error from the decision tree model. The model has a 4% error meaning that it can predict which of the three groups a medical bill will land in with 96% accuracy. These results are more than ideal.
+```{r}
+# caclulating the classification error
+classification_error<- (conf.matrix[1, 2] + conf.matrix[2, 1]) / sum(conf.matrix)
+print(classification_error)
+```
+
+### KNN Evaluation
+```{r}
+acc31<- 100*sum(test.data_class==knn.31)/nrow(test.data)
+acc31
+```
+#### Model is 97% accurate - DUBS
+### Optimization of K
+```{r}
+i<- 1
+k.optm<-1
+for(i in 1:50){
+knn.mod <- knn(train=train.data,test=test.data,cl=train.data_class, k=i) 
+k.optm[i] <- 100 * sum(test.data_class==knn.mod)/nrow(test.data)
+k<-i
+cat(k,'=',k.optm[i],' ')
+}
+```
+```{r}
+#View accuracy plot
+ggplot(data=data.frame(k.optm))+ geom_line(mapping=aes(y=k.optm,x=1:length(k.optm))) + labs(x="K-Value", y="Accuracy level %")
+```
+#### K value peaks at 3 -> Let's remodel at that value
+```{r}
+suppressWarnings(knn.31<-knn(train=train.data,test=test.data,cl=train.data_class,k=3))
+acc31<- 100*sum(test.data_class==knn.31)/nrow(test.data)
+acc31
+
+```
+#### Now its 99.5% accurate- Even bigger dubs
+
+
+
+## Part 5
+### 5.1 Principal Results/Findings
+#### Using the insurance data set obtained from Kaggle.com, an exploratory data analysis was performed. Three predicrtive models were created and analyzed. These models include a multiple linear regression, ________, and a decision tree.   
