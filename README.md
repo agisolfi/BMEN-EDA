@@ -8,8 +8,8 @@ For the final project of BMEN-411 at the University of South Carolina, students 
 The dataset used for this project can be found at <https://www.kaggle.com/datasets/mirichoi0218/insurance> labeled as "Medical Cost Personal Datasets." This is a relativley small dataset but still allows for ample analysis.
 
 ## Contact
-For any questions regarding the nature, approach, or outcome of this project please reach the author at the following contacts:
-Anthony Dario Gisolfi
-agisolfi@email.sc.edu
+For any questions regarding the nature, approach, or outcome of this project please reach the author at the following contacts: <br> <br>
+Anthony Dario Gisolfi <br>
+agisolfi@email.sc.edu <br>
 <https://www.linkedin.com/in/anthony-dario-gisolfi/>
  
